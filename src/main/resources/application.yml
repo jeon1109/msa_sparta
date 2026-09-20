@@ -1,0 +1,24 @@
+spring:
+  application:
+    name: lesson
+  datasource:
+    url: ${LOCAL_DATABASE_URL:jdbc:mysql://localhost:3306/mysql?useSSL=false&serverTimezone=Asia/Seoul&allowPublicKeyRetrieval=true}
+    username: ${LOCAL_DB_USERNAME:root}
+    password: ${LOCAL_DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10  # 최대 커넥션 개수
+      connection-timeout: 30000 # 커넥션을 얻기 위해 대기하는 최대 시간 (ms)
+      max-lifetime: 1800000 # 커넥션의 최대 수명 (ms)
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+springdoc:
+  swagger-ui:
+    enabled: true
+
+server:
+  port: 8080
