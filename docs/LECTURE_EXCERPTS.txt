@@ -1,0 +1,2705 @@
+전체 강의 코드 발췌 모음
+업로드된 강의 원문에서 코드 표시 부분을 순서대로 추출했습니다. 완성된 실행 프로젝트가 아니라 원문 코드 발췌집입니다. 원문에 생략된 클래스, 잘못된 설정, 의존성 충돌 등이 포함될 수 있습니다. 코드가 일부 누락되거나 본문 일부가 포함될 수 있으므로 실제 적용 시 원문과 대조하세요.
+
+01 · 2주차 1일차 Spring MVC
+원본: 붙여넣은 텍스트(1)(2).txt · 발췌 21개
+
+코드 1 (원문 47행)
+// 강한 결합의 예시
+public class UserController {
+    // UserService가 UserRepository의 존재를 직접 알고, 직접 생성함
+    private final UserService userService = new UserServiceImpl();
+
+    public void save() {
+        userService.save();
+    }
+}
+문제점: 위 코드에서 만약 UserServiceImpl를 NewUserServiceImpl로 변경해야 한다면, UserController 클래스의 코드를 직접 수정해야 합니다. 이처럼 하나의 변경이 다른 코드의 변경을 유발하는 구조는 유지보수가 어렵고, 테스트가 힘들며, 유연성이 떨어지는 심각한 단점을 가집니다.
+
+
+코드 2 (원문 77행)
+// DI를 통해 느슨한 결합이 구현된 예시
+public class UserController {
+   
+   //'어떤' Service인지는 모르지만, UserService타입의 Bean이 필요하다고 선언만 함
+    private final UserService userService;
+
+
+   // 생성자를 통해 Spring 컨테이너가 알아서 적절한 Bean을 '주입'해준다.
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+}
+
+// 스프링컨테이너 빈 등록
+@Configuration
+public class BeanConfig {
+
+  @Bean
+  public UserService userService() {
+    return new UserServiceImpl();
+  }
+}
+
+
+코드 3 (원문 108행)
+@Service
+public class ProductService {
+    private final ProductRepository productRepository;
+
+    // 생성자가 호출되는 시점에 의존성이 주입된다.
+    public ProductService(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+}
+
+@Service
+@RequiredArgsConstructor // 생성자를 만들어주는 롬복을 대체 가능
+public class ProductService {
+    private final ProductRepository productRepository;
+}
+장점:
+불변성(Immutability): final 키워드를 사용하여 의존성을 변경 불가능하게 만들 수 있습니다.
+
+
+코드 4 (원문 132행)
+@Service
+public class ProductService {
+    private ProductRepository productRepository;
+
+    @Autowired // setter 메서드에 @Autowired를 붙인다.
+    public void setProductRepository(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+}
+장점: 의존성을 선택적으로, 또는 런타임에 변경해야 할 때 유연하게 사용할 수 있습니다.
+단점: 객체가 생성된 이후에도 외부에서 의존성을 변경할 수 있어 객체의 일관성이 깨질 수 있고, final 선언이 불가능합니다.
+
+
+코드 5 (원문 147행)
+@Service
+public class ProductService {
+    @Autowired // 필드에 직접 주입한다.
+    private ProductRepository productRepository;
+}
+장점: 코드가 가장 간결합니다.
+단점:
+
+
+코드 6 (원문 184행)
+@RestController
+@RequiredArgsConstructor // 생성자 주입을 위한 Lombok 어노테이션
+@RequestMapping("/api/products")
+public class ProductController {
+
+    private final ProductService productService; // Service 계층의 의존성을 주입받음
+
+    // 여기에 각 CRUD 메서드가 추가됩니다.
+}
+2. 생성 (Create) - POST
+
+
+코드 7 (원문 198행)
+@PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public ProductResponse create(@RequestBody ProductRequest request) {
+    return productService.create(request);
+  }
+3. 조회 (Read) - GET
+
+
+코드 8 (원문 207행)
+@GetMapping
+  public List<ProductResponse> getAllProducts() {
+    return productService.getAllProducts();
+  }
+
+
+코드 9 (원문 213행)
+@GetMapping("/{id}")
+  public ProductResponse getProductById(@PathVariable Long id) {
+    return productService.getProductById(id);
+  }
+4. 수정 (Update) - PUT
+
+
+코드 10 (원문 224행)
+@PutMapping("/{id}")
+  public ProductResponse update(@PathVariable Long id, @RequestBody ProductRequest request) {
+    return productService.update(id, request);
+  }
+5. 삭제 (Delete) - DELETE
+
+
+코드 11 (원문 235행)
+@DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable Long id) {
+    productService.deleteById(id);
+  }
+
+
+코드 12 (원문 285행)
+{
+    "id": 123,
+    "username": "홍길동",
+    "_links": {
+        "self": { "href": "/users/123" },
+        "purchases": { "href": "/users/123/purchases" }
+    }
+}
+
+
+코드 13 (원문 368행)
+// ProductRequest.java
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductRequest {
+
+  Long categoryId;
+
+  @NotNull
+  String name;
+
+  String description;
+
+  @NotNull
+  @Positive // 값을 양수로만 제한
+  BigDecimal price;
+
+  @NotNull
+  @PositiveOrZero // 값을 양수로 혹은 0으로 제한
+  Integer stock;
+}
+
+// ProductResponse.java
+@Getter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductResponse {
+
+  Long id;
+
+  Long categoryId;
+
+  String name;
+
+  String description;
+
+  BigDecimal price;
+
+  Integer stock;
+
+  @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+  LocalDateTime createdAt;
+}
+
+
+코드 14 (원문 412행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/products")
+public class ProductController {
+
+  private final ProductService productService;
+
+  @GetMapping
+  public List<ProductResponse> getAllProducts() {
+    return productService.getAllProducts();
+  }
+
+  @GetMapping("/{id}")
+  public ProductResponse getProductById(@PathVariable Long id) {
+    return productService.getProductById(id);
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public ProductResponse create(@RequestBody ProductRequest request) {
+    return productService.create(request);
+  }
+
+  @PutMapping("/{id}")
+  public ProductResponse update(@PathVariable Long id, @RequestBody ProductRequest request) {
+    return productService.update(id, request);
+  }
+
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable Long id) {
+    productService.deleteById(id);
+  }
+}
+
+
+코드 15 (원문 447행)
+@Service
+@RequiredArgsConstructor
+public class ProductService {
+
+  private final ProductRepository productRepository;
+
+  public List<ProductResponse> getAllProducts(){
+    return List.of();
+  }
+
+  public ProductResponse getProductById(Long id){
+    return ProductResponse.builder().build();
+  }
+
+  public ProductResponse create( ProductRequest request) {
+    return ProductResponse.builder().build();
+  }
+
+  public ProductResponse update( Long id, ProductRequest request) {
+    return ProductResponse.builder().build();
+  }
+
+  public void deleteById(Long id){
+
+  }
+}
+6. 공통 응답 처리와 예외 핸들링: API의 완성도 높이기 🛡️
+
+
+코드 16 (원문 484행)
+@Getter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ApiResponse<T> {
+
+  Error error;
+  T data;
+
+  public static <T> ApiResponse<T> ok() {
+    return ApiResponse.<T>builder().build();
+  }
+
+  public static <T> ApiResponse<T> ok(T message) {
+    return ApiResponse.<T>builder()
+        .data(message)
+        .build();
+  }
+
+  public static <T> ResponseEntity<ApiResponse<T>> fail(HttpStatus httpStatus, String errorCode,
+      String errorMessage) {
+    return ResponseEntity.status(httpStatus)
+        .body(ApiResponse.<T>builder()
+            .error(Error.of(errorCode, errorMessage))
+            .build());
+  }
+
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  public record Error(String errorCode, String errorMessage) {
+
+    public static Error of(String errorCode, String errorMessage) {
+      return new Error(errorCode, errorMessage);
+    }
+  }
+}
+
+
+코드 17 (원문 523행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/products")
+public class ProductController {
+
+  private final ProductService productService;
+
+  @GetMapping
+  public ApiResponse<List<ProductResponse>> getAllProducts() {
+    return ApiResponse.ok(productService.getAllProducts());
+  }
+
+  @GetMapping("/{id}")
+  public ApiResponse<ProductResponse> getProductById(@PathVariable Long id) {
+    return ApiResponse.ok(productService.getProductById(id));
+  }
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED)
+  public ApiResponse<ProductResponse> create(@RequestBody ProductRequest request) {
+    return ApiResponse.ok(productService.create(request));
+  }
+
+  @PutMapping("/{id}")
+  public ApiResponse<ProductResponse> update(@PathVariable Long id, @RequestBody ProductRequest request) {
+    return ApiResponse.ok(productService.update(id,request));
+  }
+
+  @DeleteMapping("/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void delete(@PathVariable Long id) {
+    productService.deleteById(id);
+  }
+
+}
+
+
+코드 18 (원문 567행)
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public enum DomainExceptionCode {
+
+  INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "잘못된 토큰입니다."),
+  EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "만료된 토큰입니다."),
+  MISSING_TOKEN(HttpStatus.UNAUTHORIZED, "토큰이 누락되었습니다."),
+  UNAUTHORIZED_ACCESS(HttpStatus.UNAUTHORIZED, "인증되지 않은 접근입니다."),
+  JSON_PROCESSING_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Json 데이터 처리 중 에러가 발생하였습니다."),
+  ;
+
+  final HttpStatus status;
+  final String message;
+}
+DomainException: 비즈니스 로직에서 발생하는 예외를 위한 커스텀 클래스입니다.
+
+
+코드 19 (원문 590행)
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class DomainException extends RuntimeException {
+
+  HttpStatus httpStatus;
+  String code;
+
+  public DomainException(DomainExceptionCode exceptionCode) {
+    super(exceptionCode.getMessage());
+    this.httpStatus = exceptionCode.getStatus();
+    this.code = exceptionCode.name();
+  }
+
+}
+2단계: @RestControllerAdvice로 전역 예외 처리기 구현
+
+@RestControllerAdvice 어노테이션을 사용하여 모든 Controller에서 발생하는 예외를 가로채 처리하는 클래스를 만듭니다.
+
+
+코드 20 (원문 617행)
+import com.sparta.msa.lesson.global.response.ApiResponse;
+import io.swagger.v3.oas.annotations.Hidden;
+import java.util.stream.Collectors;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+@Slf4j
+@Hidden
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+  private static final String VALIDATION_ERROR = "VALIDATION_ERROR";
+  private static final String SERVER_ERROR = "SERVER_ERROR";
+
+  @ExceptionHandler(DomainException.class)
+  public ResponseEntity<ApiResponse<Void>> handleDomainException(DomainException ex) {
+    log.warn("[DomainException] : code={}, message={}", ex.getCode(), ex.getMessage());
+    return ApiResponse.fail(ex.getHttpStatus(), ex.getCode(), ex.getMessage());
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(
+      MethodArgumentNotValidException ex) {
+    String errorMessage = extractErrorMessages(ex);
+    log.warn("[ValidationException] : {}", errorMessage);
+    return ApiResponse.fail(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, errorMessage);
+  }
+
+  @ExceptionHandler(BindException.class)
+  public ResponseEntity<ApiResponse<Void>> handleBindException(BindException ex) {
+    String errorMessage = extractErrorMessages(ex);
+    log.warn("[BindException] : {}", errorMessage);
+    return ApiResponse.fail(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, errorMessage);
+  }
+
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
+    log.error("[Exception] : ", ex);
+    String message = ex.getMessage() != null ? ex.getMessage() : "서버 오류가 발생하였습니다.";
+    return ApiResponse.fail(HttpStatus.INTERNAL_SERVER_ERROR, SERVER_ERROR, message);
+  }
+
+  private String extractErrorMessages(BindException ex) {
+    return ex.getBindingResult()
+        .getAllErrors()
+        .stream()
+        .map(DefaultMessageSourceResolvable::getDefaultMessage)
+        .collect(Collectors.joining(", "));
+  }
+}
+3단계: 서비스 로직에서 예외 발생시키기
+
+
+코드 21 (원문 696행)
+{
+  "result": false,
+  "data": null,
+  "error": {
+    "code": "NOT_FOUND_PRODUCT",
+    "message": "상품을 찾을 수 없습니다."
+  }
+}
+7. 실습: User 도메인 API 설계 및 예외 처리 🧑‍💻
+
+
+02 · 2주차 2일차 비즈니스 요구사항
+원본: 붙여넣은 텍스트(1)(3).txt · 발췌 35개
+
+코드 1 (원문 30행)
+// build.gradle
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+}
+
+
+코드 2 (원문 45행)
+@NotNull(message = "Name must not be null")
+private String name;
+
+
+코드 3 (원문 60행)
+@Size(min = 2, max = 20, message = "Name must be between 2and 20 characters")
+private String name;
+3. 형식 검증
+
+@Email: 이메일 형식을 검증합니다.
+@Pattern(regexp = "..."): 직접 정의한 정규 표현식(RegExp)을 만족하는지 검증합니다. (예: 전화번호, 우편번호 형식)
+
+
+코드 4 (원문 67행)
+@Email(message = "Email should be valid")
+private String email;
+
+
+코드 5 (원문 70행)
+@Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
+private String phoneNumber;
+4. 시간 검증
+
+@Future / @FutureOrPresent: 현재보다 미래의 날짜/시간인지 검증합니다.
+@Past / @PastOrPresent: 현재보다 과거의 날짜/시간인지 검증합니다.
+
+
+코드 6 (원문 77행)
+@Future(message = "Date must be in the future")
+private LocalDate bookingDate;
+
+
+코드 7 (원문 82행)
+@Getter
+public class UserCreateRequest {
+    @NotBlank(message = "사용자 이름은 필수이며, 공백일 수 없습니다.")
+    @Size(min = 2, max = 50, message = "이름은 2자 이상 50자 이하로 입력해주세요.")
+    private String username;
+
+    @NotBlank(message = "이메일은 필수입니다.")
+    @Email(message = "유효한 이메일 형식이 아닙니다.")
+    private String email;
+
+    @Pattern(regexp = "^010-\\d{4}-\\d{4}$", message = "전화번호는 010-XXXX-XXXX 형식이어야 합니다.")
+    private String phoneNumber;
+}
+
+
+코드 8 (원문 98행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/users")
+public class UserController {
+
+  private final UserService userService;
+
+  @PostMapping
+  public ApiResponse<UserResponse> create(@Valid @RequestBody UserRequest request) {
+    // @Valid 통과 시: 이 코드가 실행됨
+    return ApiResponse.ok(userService.save(request));
+  }
+}
+
+
+코드 9 (원문 124행)
+// Before Lombok
+public class ProductDto {
+    private String name;
+    private BigDecimal price;
+
+    public ProductDto(String name, BigDecimal price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    // equals(), hashCode(), toString()...
+}
+
+
+코드 10 (원문 147행)
+// After Lombok
+@Getter
+@RequiredArgsConstructor
+public class ProductDto {
+    private final String name;
+    private final BigDecimal price;
+}
+
+
+코드 11 (원문 165행)
+@Service
+@RequiredArgsConstructor // final 필드인 productRepository를 주입받는 생성자를 자동 생성
+public class ProductService {
+    private final ProductRepository productRepository;
+    // ...
+}
+3. @ToString & @EqualsAndHashCode
+
+@ToString: toString() 메서드를 보기 좋게 오버라이드합니다.
+주의: 양방향 연관관계가 있는 엔티티에 사용하면, 서로를 무한히 호출하는 순환 참조가 발생하여 StackOverflowError를 유발할 수 있습니다. 이때는 @ToString.Exclude로 특정 필드를 제외해야 합니다.
+@EqualsAndHashCode: equals()와 hashCode() 메서드를 오버라이드합니다.
+주의: JPA 엔티티에 사용할 경우, 연관된 모든 필드를 비교하게 되어 성능 저하나 예상치 못한 동작을 유발할 수 있습니다. 엔티티에는 callSuper = false 옵션과 함께 id 필드만 비교(of = "id")하는 등 신중하게 사용해야 합니다.
+4. @Builder
+
+
+코드 12 (원문 200행)
+@Getter
+@Builder // 생성의 편의성을 위해 빌더 패턴 사용
+@JsonInclude(JsonInclude.Include.NON_NULL) // null 필드는 JSON에서 제외
+public class ProductResponse {
+
+    private final String name;
+    private final String description;
+    private final BigDecimal price;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss")
+    private final LocalDateTime createdAt;
+}
+3. Service 계층: 비즈니스 로직의 중심 🧠
+
+
+코드 13 (원문 230행)
+// User 정보를 '반드시' 가져와야 하는 로직
+public User getUserById(Long id) {
+    return userRepository.findById(id)
+        .orElseThrow(() -> new ServiceException(ServiceExceptionCode.NOT_FOUND_USER));
+}
+find...: "데이터가 없을 수도 있음을 인정합니다."
+계약: "나를 호출하면, 요청한 데이터를 찾아보겠습니다. 하지만 데이터가 없을 수도 있으니, 호출한 당신이 후속 처리를 직접 해주세요."
+구현: Optional<T>을 그대로 반환하여, 호출한 쪽에서 데이터 존재 여부를 판단하고 처리하도록 위임합니다.
+
+
+코드 14 (원문 240행)
+// 이메일이 존재하는지 '찾아보는' 로직
+public Optional<User> findUserByEmail(String email) {
+    return userRepository.findByEmail(email);
+}
+
+
+코드 15 (원문 250행)
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+  private final OrderRepository orderRepository;
+  private final ProductRepository productRepository;
+
+  private final UserService userService; // 다른 서비스를 직접 주입받음
+
+  @Transactional
+  public void create(Long userId, Long productId, int quantity) {
+    // 1. 다른 도메인(User)의 데이터를 가져오기 위해 주입받은 서비스를 사용
+
+
+코드 16 (원문 279행)
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+  private final UserRepository userRepository;
+  private final OrderRepository orderRepository;
+  private final ProductRepository productRepository;
+
+  @Transactional
+  public void create(Long userId, Long productId, int quantity) {
+    // 1. 다른 도메인(User)의 데이터를 가져오기 위해 주입받은 서비스를 사용
+
+
+코드 17 (원문 314행)
+public class Product {
+    // 생성자 오버로딩
+    public Product(String name) { ... }
+    public Product(String name, double price) { ... }
+    public Product(String name, double price, String description) { ... }
+}
+
+// 사용할 때: 어떤 생성자를 써야 할지 헷갈리고, 파라미터 순서가 틀리기 쉽다.
+Product product = new Product("Laptop", 1200.00, "A powerful laptop");
+
+
+코드 18 (원문 328행)
+Product product = new Product();
+product.setName("Laptop");
+product.setPrice(1200.00);
+// ...
+
+
+코드 19 (원문 353행)
+public class Product {
+    private final String name;
+    private final double price;
+
+    // 생성자는 private으로 하여 외부에서 직접 생성을 막음
+    private Product(Builder builder) {
+        this.name = builder.name;
+        this.price = builder.price;
+    }
+
+    // 정적 내부 빌더 클래스
+    public static class Builder {
+        private String name;
+        private double price;
+
+        public Builder name(String name) { this.name = name; return this; }
+        public Builder price(double price) { this.price = price; return this; }
+
+        public Product build() {
+            return new Product(this);
+        }
+    }
+}
+
+
+코드 20 (원문 384행)
+@Getter
+@Builder
+public class ProductResponse {
+    private Long id;
+    private String name;
+    private double price;
+}
+
+
+코드 21 (원문 394행)
+@Getter
+public class Product {
+    private final String name;
+    private final double price;
+
+    @Builder
+    public Product(String name, double price) {
+        if (price < 0) throw new IllegalArgumentException("가격은 음수일 수 없습니다.");
+        this.name = name;
+        this.price = price;
+    }
+}
+
+
+코드 22 (원문 416행)
+@Getter
+@Builder
+@NoArgsConstructor  // JSON 변환 등에서 필요할 수 있음
+public class Product {
+    private String name;
+    private double price;
+    private String description;
+
+    @Builder.Default // 필드 초기값을 빌더에 반영하려면 @Builder.Default 사용
+    private boolean onSale = false;
+}
+
+
+코드 23 (원문 447행)
+@Getter
+public class Product {
+    private final String name; // 필수 값
+    private final double price;  // 필수 값
+    private String description;  // 선택 값
+
+    @Builder // 이 생성자에 대해서만 빌더를 만듦
+    public Product(String name, double price) {
+        // 생성자 내부에서 유효성 검증 로직 추가 가능
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("상품 이름은 필수입니다.");
+        }
+        this.name = name;
+        this.price = price;
+        // 특정 필드를 내부적으로 초기화할 수도 있음
+        this.description = "기본 설명";
+    }
+}
+
+
+코드 24 (원문 492행)
+// 수동 변환 메서드 예시
+public UserResponse toResponse(User user) {
+    return UserResponse.builder()
+        .id(user.getId())
+        .username(user.getUsername())
+        .email(user.getEmail())
+        // .phoneNumber(user.getPhoneNumber())  <-- 이런 실수를 하기 쉽다!
+        .createdAt(user.getCreatedAt())
+        .build();
+}
+
+
+코드 25 (원문 519행)
+dependencies {
+    implementation 'org.mapstruct:mapstruct:1.5.5.Final'
+    // 어노테이션 프로세서를 지정해야 코드가 자동 생성됨
+
+
+코드 26 (원문 526행)
+@Mapper(componentModel = "spring") // Spring Bean으로 등록
+public interface UserMapper {
+    // User Entity -> UserResponse DTO 변환
+    UserResponse toResponse(User user);
+
+    // UserRequest DTO -> User Entity 변환
+    User toEntity(UserRequest request);
+}
+
+
+코드 27 (원문 536행)
+@Service
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository;
+    private final UserMapper userMapper; // 생성자 주입
+
+    public UserResponse create(UserRequest request) {
+        // DTO -> Entity 변환
+        User user = userMapper.toEntity(request);
+        User savedUser = userRepository.save(user);
+        // Entity -> DTO 변환
+        return userMapper.toResponse(savedUser);
+    }
+}
+@Mapping으로 중첩 객체 및 필드명 불일치 해결
+
+
+코드 28 (원문 560행)
+@Mapper(componentModel = "spring")
+public interface ProductMapper {
+    @Mapping(target = "name", source = "productName") // productName -> name
+    ProductDto toDto(Product product);
+}
+
+
+코드 29 (원문 572행)
+// Order.java
+@Entity
+@Getter
+public class Order {
+    @Id
+    private Long id;
+
+    @ManyToOne
+    private User user; // 사용자 정보가 객체로 중첩되어 있음
+
+    private BigDecimal totalPrice;
+}
+
+// User.java
+@Entity
+@Getter
+public class User {
+    @Id
+    private Long id;
+
+    private String username;
+
+    private String email;
+}
+
+
+코드 30 (원문 598행)
+// OrderResponse.java
+@Getter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class OrderResponse {
+
+  Long orderId; // Entity의 'id'와 이름이 다름
+
+  String username;   // Entity의 'user.username'에서 가져와야 함
+
+  BigDecimal totalPrice;
+
+}
+해결책: source 속성에 점(.)을 사용하여 객체 그래프 경로를 지정합니다
+
+
+코드 31 (원문 613행)
+// OrderMapper.java
+@Mapper(componentModel = "spring")
+public interface OrderMapper {
+
+  // 여러 개의 @Mapping을 동시에 사용할 수 있음
+  @Mapping(target = "orderId", source = "id") // 이름이 다른 필드 매핑
+  @Mapping(target = "username", source = "user.name") // 중첩 객체의 필드를 평탄화하여 매핑
+  OrderResponse toResponse(Order order);
+
+}
+
+
+코드 32 (원문 646행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/users")
+public class UserController {
+
+  private final UserService userService;
+
+  @PostMapping
+  @ResponseStatus(HttpStatus.CREATED) // 성공 시 201 Created 상태 코드 반환
+  public ApiResponse<UserResponse> create(@Valid @RequestBody UserRequest request) {
+    // @Valid 통과 시: 이 코드가 실행됨
+    return ApiResponse.ok(userService.save(request));
+  }
+}
+@RequestBody UserCreateRequest request: 클라이언트가 보낸 JSON 데이터를 UserCreateRequest DTO 객체로 변환하여 받습니다.
+@Valid: UserCreateRequest 클래스 내에 정의된 Validation 어노테이션(@NotBlank 등)을 기준으로 데이터 유효성 검사를 실행합니다. 검증에 실패하면 GlobalExceptionHandler가 자동으로 400 Bad Request 응답을 처리합니다.
+@ResponseStatus(HttpStatus.CREATED): 메서드가 성공적으로 실행되었을 때, HTTP 응답 코드를 201 Created로 설정합니다.
+userService.createUser(request): 유효성 검증을 통과하면, 실제 비즈니스 로직 처리를 Service 계층에 위임합니다.
+2단계: Service - 비즈니스 로직 처리
+
+
+코드 33 (원문 669행)
+@Service
+@RequiredArgsConstructor
+public class UserService {
+
+  private final UserRepository userRepository;
+
+  private final UserMapper userMapper;
+  private final PasswordEncoder passwordEncoder; // 비밀번호 암호화를 위한 의존성 주입
+
+  @Transactional
+  public UserResponse createUser(UserRequest request) {
+    // 1. 이메일 중복 확인 (비즈니스 규칙)
+    if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+      throw new DomainException(DomainExceptionCode.DUPLICATE_EMAIL);
+    }
+
+    // 2. 비밀번호 암호화
+    String encodedPassword = passwordEncoder.encode(request.getPassword());
+
+    // 3. DTO를 Entity로 변환하여 DB에 저장
+    User user = userMapper.toEntity(request, encodedPassword);
+    User savedUser = userRepository.save(user);
+
+    // 4. Entity를 Response DTO로 변환하여 Controller에 반환
+    return userMapper.toResponse(savedUser);
+  }
+}
+
+
+코드 34 (원문 697행)
+@Configuration
+public class SecurityConfig {
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+}
+
+
+코드 35 (원문 713행)
+public interface UserRepository extends JpaRepository<User, Long> {
+    Optional<User> findByEmail(String email); // 이메일 중복 확인을 위한 쿼리 메서드
+}
+
+
+03 · 2주차 3일차 영속성 및 트랜잭션
+원본: 붙여넣은 텍스트(1)(4).txt · 발췌 13개
+
+코드 1 (원문 40행)
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+private final OrderRepository orderRepository ;
+private final ProductRepository productRepository;
+
+@Transactional
+public void placeOrder(OrderRequest orderRequest) {
+    // 1. 주문 생성 로직 (DB 변경 1)
+    Order order = new Order(orderRequest);
+    orderRepository.save(order);
+
+// 2. 재고 감소 로직 (DB 변경 2)
+
+### 코드 2 (원문 107행)
+
+```java
+User userA = em.find(User.class, 1L);
+User userB = em.find(User.class, 1L);
+System.out.println(userA == userB); // 결과: true
+코드 3 (원문 125행)
+@Transactional
+public void update(Long id, String newName) {
+    // 1. 엔티티를 조회하여 영속 상태로 만듦
+    User user = userRepository.findById(id).get(); 
+
+    // 2. 객체의 상태만 변경 (setter 호출)
+    user.changeName(newName);
+
+    // 3. userRepository.save(user) 같은 코드를 호출할 필요가 전혀 없다!
+} // 메서드가 끝나며 트랜잭션이 커밋되고, 변경 감지가 동작하여 UPDATE 쿼리가 실행됨
+효과: 개발자는 UPDATE 쿼리를 직접 작성하거나 save 메서드를 호출하는 번거로움 없이, 객체의 상태 변경만으로 DB 데이터를 수정할 수 있어 매우 편리합니다.
+코드 4 (원문 175행)
+@Transactional
+public void decreaseStock(Long productId, int quantity) {
+    // 1. ID=1 상품 조회. (이때 엔티티와 스냅샷이 영속성 컨텍스트에 로드됨)
+    Product product = productRepository.findById(productId).get(); 
+
+    // 2. 객체의 상태 변경. (메모리 상의 엔티티 객체 필드만 변경됨)
+    //    - 현재 엔티티: Product(id=1, name="노트북", stock=90)
+    //    - 스냅샷      : {name="노트북", stock=100}
+    product.decreaseStock(quantity); 
+} 
+// 3. 메서드 종료 -> @Transactional에 의해 트랜잭션 커밋 시도 -> Flush 자동 호출
+코드 5 (원문 205행)
+@Transactional
+public void persistAndFind() {
+    // 1. 새 상품을 영속화 (아직 DB에 INSERT 안 됨)
+    Product newProduct = new Product("새 마우스");
+    entityManager.persist(newProduct); 
+
+    // 2. JPQL로 방금 넣은 상품 조회 시도
+    // 만약 flush가 안되면? DB에 데이터가 없으므로 조회가 안된다.
+    List<Product> products = em.createQuery("SELECT p FROM Product p WHERE p.name = '새 마우스'").getResultList();
+}
+해결: 데이터 정합성을 위해, JPA는 JPQL 쿼리가 실행되기 전에 영속성 컨텍스트를 flush하여 INSERT, UPDATE, DELETE 변경사항을 DB에 미리 반영합니다.
+코드 6 (원문 220행)
+@Transactional
+public void createAndFlush(Product product) {
+    // 1. 엔티티를 영속성 컨텍스트에 저장. (아직 INSERT 쿼리는 DB에 안 감)
+    productRepository.save(product);
+
+    // 2. flush()를 호출하여 INSERT 쿼리를 DB에 즉시 전송.
+    entityManager.flush(); 
+
+    // 3. 이후 로직에서 이 product를 ID로 조회하는 다른 쿼리를 실행해도,
+    // 이미 DB에 데이터가 있으므로 정상적으로 조회된다.
+}
+코드 7 (원문 239행)
+@Transactional
+public void createAndFind() {
+    // 1. 새 상품 '키보드'를 생성하고 영속화
+    //    (이 시점에는 INSERT SQL이 '쓰기 지연 저장소'에만 있고, DB에는 아직 없음)
+    Product product = new Product("키보드", 50000);
+    productRepository.save(product); 
+
+    // 2. JPQL로 방금 넣은 '키보드' 상품을 조회
+    //    만약 flush가 없다면, DB에는 아직 '키보드'가 없으므로 이 쿼리는 빈 결과를 반환할 것이다.
+    List<Product> products = productRepository.findByName("키보드"); 
+
+    System.out.println("조회된 상품 수: " + products.size()); // 예상 결과: 1, 실제 결과: 0
+}
+코드 8 (원문 261행)
+@Transactional
+public void saveAndCallProcedure(Product product) {
+    // 1. 새 상품을 영속화
+    productRepository.save(product);
+
+    // 2. 이 상품의 ID를 파라미터로 DB 프로시저를 호출해야 함
+    //    만약 flush가 없다면? DB에는 아직 이 상품 데이터가 없으므로,
+    //    프로시저는 ID를 받아도 해당 데이터를 찾지 못해 에러를 발생시킨다.
+    storedProcedureRepository.executeProcessProduct(product.getId()); // ERROR!
+}
+코드 9 (원문 274행)
+@Transactional
+public void saveAndCallProcedure(Product product) {
+    // 1. 새 상품을 영속화
+    productRepository.save(product);
+
+    // 2. 명시적으로 flush를 호출하여 INSERT 쿼리를 DB에 즉시 전송
+    productRepository.flush();
+
+    // 3. 이제 DB에 상품 데이터가 존재하므로, 프로시저가 정상적으로 실행됨
+    storedProcedureRepository.executeProcessProduct(product.getId()); // SUCCESS!
+}
+코드 10 (원문 303행)
+@Getter
+@NoArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class OrderRequest {
+
+  @NotNull
+  Long userId;
+
+  @NotEmpty
+  List<OrderProduct> products;
+
+  @Getter
+  @NoArgsConstructor
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class OrderProduct {
+
+    @NotNull
+    Long id;
+
+    @Min(1)
+    Integer quantity;
+    
+  }
+}
+코드 11 (원문 328행)
+@Getter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class OrderResponse {
+
+  Long id;
+  
+  BigDecimal totalPrice;
+  
+  OrderStatus status;
+  
+  LocalDateTime createdAt;
+  
+  OrderUserResponse user;
+  
+  List<OrderProductResponse> products;
+
+  @Getter
+  @Builder
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class OrderUserResponse {
+
+    Long id;
+    
+    String name;
+    
+  }
+
+  @Getter
+  @Builder
+  @FieldDefaults(level = AccessLevel.PRIVATE)
+  public static class OrderProductResponse {
+
+    Long id;
+    
+    String name;
+    
+    Integer quantity;
+    
+    BigDecimal price;
+    
+  }
+}
+코드 12 (원문 372행)
+@Service
+@RequiredArgsConstructor
+public class OrderService {
+
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+    private final UserRepository userRepository; // 사용자 조회를 위해 추가
+
+    @Transactional
+    public OrderResponse order(OrderRequest request) {
+        // 1. 사용자 조회
+코드 13 (원문 421행)
+@RestController
+@RequestMapping("/api/Orders")
+@RequiredArgsConstructor
+public class OrderController {
+
+    private final OrderService OrderService;
+
+    @PostMapping
+    public ApiResponse<Void> placeOrder(@Valid @RequestBody OrderRequest request) {
+        OrderService.placeOrder(request)
+        return ApiResponse.success();
+    }
+}
+04 · 2주차 추가학습 QueryDSL
+원본: 붙여넣은 텍스트(1)(5).txt · 발췌 13개
+
+코드 1 (원문 16행)
+// "username"을 "usrname"으로 오타를 내도 컴파일은 성공한다.
+@Query("SELECT u FROM User u WHERE u.usrname = :name") 
+List<User> findByName(String name);
+코드 2 (원문 22행)
+// 이름과 가격으로 동적 검색 (가독성이 떨어지고 실수하기 쉬움)
+String jpql = "SELECT p FROM Product p WHERE";
+if (name != null) {
+    jpql += " p.name = :name";
+}
+if (price != null) {
+    jpql += " AND p.price > :price";
+}
+// ...
+코드 3 (원문 53행)
+// build.gradle
+dependencies {
+    // QueryDSL JPA 라이브러리
+    implementation 'com.querydsl:querydsl-jpa:5.0.0:jakarta'
+
+    // QueryDSL 어노테이션 프로세서 (Q클래스 생성)
+코드 4 (원문 89행)
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class QueryDslConfig {
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Bean
+    public JPAQueryFactory jpaQueryFactory() {
+        return new JPAQueryFactory(entityManager);
+    }
+}
+코드 5 (원문 115행)
+import static com.sparta.msa.lesson.domain.product.entity.QProduct.product;
+
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import com.sparta.msa.lesson.domain.product.entity.Product;
+import java.util.List;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Repository;
+
+@Repository
+@RequiredArgsConstructor
+public class ProductQueryRepository {
+
+  private final JPAQueryFactory queryFactory;
+
+  public List<Product> findProducts(String name, Double minPrice, Double maxPrice) {
+    return queryFactory
+        .selectFrom(product)
+        .where(
+            // 각 조건이 null이면 무시됨
+            name != null ? product.name.contains(name) : null,
+코드 6 (원문 152행)
+public List<Product> findProducts(String name, Double minPrice, Double maxPrice) {
+    return queryFactory
+            .selectFrom(product)
+            .where(
+                nameContains(name), // 메서드 호출
+                priceGoe(minPrice),
+                priceLoe(maxPrice)
+            )
+            .fetch();
+}
+
+// 조건들을 메서드로 분리
+private BooleanExpression nameContains(String name) {
+    return name != null ? product.name.contains(name) : null;
+}
+
+private BooleanExpression priceGoe(Double minPrice) {
+    return minPrice != null ? product.price.goe(minPrice) : null;
+}
+
+private BooleanExpression priceLoe(Double maxPrice) {
+    return maxPrice != null ? product.price.loe(maxPrice) : null;
+}
+장점:
+재사용성: nameContains 같은 조건 메서드는 다른 쿼리에서도 재사용할 수 있습니다.
+가독성: where 절이 비즈니스 요구사항처럼 읽혀 매우 깔끔합니다.
+코드 7 (원문 192행)
+import static com.example.project.domain.QProduct.product;
+
+
+  public List findProductsByParentCategory(Long parentCategoryId) {
+    return queryFactory
+        .selectFrom(product)
+        .join(product.category, category)
+        .where(category.parent.id.eq(parentCategoryId))
+        .fetch();
+  }
+
+
+### 코드 8 (원문 210행)
+
+```javascript
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+  
+  public Page<Product> findPagedProducts(String name, Pageable pageable) {
+    // 1. 콘텐츠 조회 쿼리 (페이징 적용)
+    List<Product> content = queryFactory
+        .selectFrom(product)
+        .where(
+코드 9 (원문 258행)
+import com.querydsl.core.annotations.QueryProjection;
+import java.math.BigDecimal;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductDTO {
+
+  String name;
+  BigDecimal price;
+  Integer stock;
+
+  @QueryProjection // QueryDSL은 이 생성자를 보고 QProductDTO를 생성합니다.
+  public ProductDTO(String name, BigDecimal price, Integer stock) {
+    this.name = name;
+    this.price = price;
+    this.stock = stock;
+  }
+}
+2단계: 프로젝트 빌드 및 Q-DTO 생성 확인
+코드 10 (원문 289행)
+import static com.example.project.domain.QProductDTO; // 생성된 Q-DTO import
+
+@Repository
+@RequiredArgsConstructor
+public class ProductQueryRepository {
+    private final JPAQueryFactory queryFactory;
+
+	  public List<ProductDTO> findProductDTOs(Double minPrice) {
+	    return queryFactory
+	        .select(new QProductDTO( // Q-DTO의 생성자를 호출
+	            product.name,
+	            product.price,
+	            product.stock
+	        ))
+	        .from(product)
+	        .where(product.price.goe(minPrice))
+	        .fetch();
+	  }
+}
+new QProductDTO(...)는 실제 DTO 객체를 만드는 코드가 아니라, QueryDSL이 "product의 name, price, stock 컬럼을 조회하라"는 SQL로 변환하는 일종의 문법입니다.
+@QueryProjection의 장점과 단점
+코드 11 (원문 335행)
+import com.querydsl.core.annotations.QueryProjection;
+import java.math.BigDecimal;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CategoryProductDTO {
+
+  String categoryName;
+  String productName;
+  BigDecimal price;
+  Integer stock;
+
+  @QueryProjection
+  public CategoryProductDTO(String categoryName, String productName, BigDecimal price,
+      Integer stock) {
+    this.categoryName = categoryName;
+    this.productName = productName;
+    this.price = price;
+    this.stock = stock;
+  }
+}
+2단계: Repository 구현 (CategoryProductQueryRepository.java)
+코드 12 (원문 364행)
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+
+import static com.example.project.domain.QCategory.category;
+import static com.example.project.domain.QProduct.product;
+// Q-DTO import 추가
+import static com.example.project.domain.QCategoryProductDTO; 
+
+@Repository
+@RequiredArgsConstructor
+public class ProductQueryRepository {
+
+    private final JPAQueryFactory queryFactory;
+
+	  public List<CategoryProductDTO> findCategoryProducts(String categoryName) {
+	    return queryFactory
+	        .select(new QCategoryProductDTO( // Q-DTO 생성자로 결과 매핑
+	            category.name,
+	            product.name,
+	            product.price,
+	            product.stock
+	        ))
+	        .from(product)
+	        .join(product.category, category) // product와 category를 조인
+	        .where(category.name.eq(categoryName))
+	        .fetch();
+	  }
+}
+3단계: Controller 연결 및 테스트
+코드 13 (원문 405행)
+@Repository
+@RequiredArgsConstructor
+public class ProductQueryRepository {
+
+    private final JPAQueryFactory queryFactory;
+
+	  public List<CategoryProductCountDTO> findCategoryProductCounts() {
+	    return queryFactory
+	        .select(new QCategoryProductCountDTO(
+	            product.category.name,
+	            product.id.count()  // 카테고리별 상품 수를 센다
+	        ))
+	        .from(product)
+	        .join(product.category, category)
+	        .groupBy(product.category.name)  // 카테고리 이름으로 그룹화
+	        .orderBy(product.id.countDistinct().desc())
+	        .fetch();
+	  }
+}
+3단계: Controller 연결 및 테스트
+
+GET /api/categories/order-counts 와 같은 엔드포인트를 통해 통계 결과를 확인합니다.
+05 · 3주차 1일차 Spring AI
+원본: 붙여넣은 텍스트(1)(20261017-021404).txt · 발췌 24개
+
+코드 1 (원문 283행)
+spring:
+  ai:
+    openai:
+      # 1. API 키: Google AI Studio에서 발급받은 키를 입력합니다.
+      # ${GOOGLE_AI_GEMINI_API_KEY}
+코드 2 (원문 353행)
+// ❌ 브라우저 코드에서 직접 호출
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      headers: {
+        'Authorization': 'Bearer sk-proj-abc123...' // 🚨 API Key 노출!
+      }
+});
+코드 3 (원문 365행)
+// 악의적인 사용자가 브라우저 콘솔에서
+for(let i = 0; i < 10000; i++) {
+	 callOpenAI("무거운 요청"); // 🚨 무제한 호출 가능
+}
+코드 4 (원문 415행)
+@Service
+public class ChatService {
+    
+	@Value("${spring.ai.openai.api-key}")
+	private String apiKey; // 서버 외부로 절대 유출되지 않음
+코드 5 (원문 425행)
+public String chatWithLimit(String userId, String message) {
+    if (usageService.getTodayUsage(userId) >= 10) {
+        throw new UsageLimitException("오늘 사용량을 모두 소진했습니다.");
+    }
+    return chatClient.prompt().user(message).call().content();
+}
+코드 6 (원문 436행)
+@Service
+public class ProductRecommendationService {
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private ProductRepository productRepository;
+    
+    public String recommendProduct(Long userId, String query) {
+        // 1. DB에서 사용자 정보 조회
+코드 7 (원문 481행)
+@Service
+public class ManagedChatService {
+    
+    public String chat(String message) {
+        // 1. 입력 검증
+        if (containsInappropriateContent(message)) {
+            return "부적절한 내용이 포함되어 있습니다.";
+        }
+        
+        // 2. 프롬프트 템플릿 적용 (일관된 응답 품질)
+        String enhancedPrompt = """
+코드 8 (원문 525행)
+@Service
+public class CachedChatService {
+    
+    private final Cache<String, String> cache = 
+        Caffeine.newBuilder()
+            .maximumSize(1000)
+            .expireAfterWrite(1, TimeUnit.HOURS)
+            .build();
+    
+    public String chat(String message) {
+        // 동일한 질문은 캐시에서 반환 (비용 절감)
+        return cache.get(message, key -> {
+            return chatClient.prompt()
+                    .user(key)
+                    .call()
+                    .content();
+        });
+    }
+}
+3. Spring AI 프로젝트 설정
+build.gradle 추가
+코드 9 (원문 549행)
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:1.0.0-M6"
+    }
+}
+
+dependencies {
+    // Google AI Gemini 스타터 추가
+    implementation 'org.springframework.ai:spring-ai-openai-spring-boot-starter'
+}
+application.yml 설정
+코드 10 (원문 622행)
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/ai")
+public class AiChatController {
+
+  private final ChatClient chatClient;
+
+  // 생성자 주입을 통한 ChatClient 빌드
+  public AiChatController(ChatClient.Builder chatClientBuilder) {
+    this.chatClient = chatClientBuilder.build();
+  }
+
+  @PostMapping("/chat")
+  public String chat(@RequestBody String message) {
+    return chatClient.prompt()
+        .user(message)
+        .call()
+        .content(); // 문자열로 결과 반환
+  }
+}
+코드 11 (원문 648행)
+curl -X 'POST' \
+  'http://localhost:8080/api/ai/chat' \
+코드 12 (원문 661행)
+@GetMapping("/marketing")
+  public String generateMarketing(
+      @RequestParam(value = "productName") String productName,
+      @RequestParam(value = "features") String features) {
+
+    String template = """
+코드 13 (원문 680행)
+curl -X 'GET' \
+  'http://localhost:8080/api/ai/marketing?productName=옥수수&features=기름짐' \
+코드 14 (원문 691행)
+@GetMapping("/translate")
+  public String translate(
+      @RequestParam(value = "text") String text,
+      @RequestParam(value = "targetLanguage", defaultValue = "영어") String targetLanguage) {
+
+    return chatClient.prompt()
+        // 1. AI의 페르소나 설정 (System Message)
+        .system("당신은 전문 번역가입니다. 주어진 텍스트를 문맥에 맞게 자연스럽게 번역해주세요.")
+
+        // 2. 동적 파라미터 주입 (Prompt Template)
+        .user(u -> u.text("다음 텍스트를 {lang}로 번역해주세요: {text}")
+            .param("lang", targetLanguage)
+            .param("text", text))
+        .call()
+        .content();
+  }
+코드 15 (원문 708행)
+curl -X 'GET' \
+  'http://localhost:8080/api/ai/translate?text=간장공장 공장장&targetLanguage=영어' \
+코드 16 (원문 721행)
+return chatClient.prompt()
+    // 1. 시스템 메시지로 AI의 성격 고정 (고정값)
+    .system("너는 맛집 추천 전문가야. 답변은 항상 '반말'로 친근하게 해줘.") 
+    
+    // 2. 프롬프트 템플릿으로 사용자 입력 가공 (변수 사용)
+    .user(u -> u.text("오늘 {location} 근처에서 {food} 맛집 3곳 추천해줘.")
+                .param("location", "강남역")
+                .param("food", "삼겹살"))
+    .call()
+    .content();
+코드 17 (원문 772행)
+// ❌ 기존 방식 - 문자열 파싱
+String response = chatClient.prompt()
+    .user("이 리뷰를 분석해주세요: " + review)
+    .call()
+    .content();
+
+
+// 결과: "긍정적이며, 8점입니다. 품질이 좋습니다."
+// 문제점:
+// 1. 파싱 로직이 복잡함
+// 2. 형식이 일정하지 않음
+// 3. 타입 안정성이 없음
+// 4. 에러 처리가 어려움
+
+String sentiment = extractSentiment(response); // 😰 복잡한 파싱
+
+
+### 코드 18 (원문 800행)
+
+```javascript
+package com.sparta.msa.lesson.dto;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@NoArgsConstructor // JSON 역직렬화를 위해 기본 생성자 필수
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ProductAnalysisResponse {
+
+    @JsonProperty("sentiment")
+    String sentiment;
+
+    @JsonProperty("score")
+    int score;
+
+    @JsonProperty("summary")
+    String summary;
+}
+코드 19 (원문 838행)
+@GetMapping("/story")
+  public String generateStory(@RequestParam(value = "topic") String topic) {
+    return chatClient.prompt()
+        .user("다음 주제로 창의적인 이야기를 작성해주세요: " + topic)
+        .options(ChatOptions.builder()
+            .temperature(0.9)  // 1.0에 가까울수록 창의적(랜덤성 증가)
+            .maxTokens(500)    // 답변의 최대 길이 제한
+            .build())
+        .call()
+        .content();
+  }
+
+  @GetMapping("/summary")
+  public String generateSummary(@RequestParam(value = "text") String text) {
+    return chatClient.prompt()
+        .user("다음 텍스트를 핵심 위주로 요약해주세요: " + text)
+        .options(ChatOptions.builder()
+            .temperature(0.1)  // 0.0에 가까울수록 일관적이고 사실적
+            .maxTokens(200)
+            .build())
+        .call()
+        .content();
+  }
+5. AI 도입의 핵심: 비용 구조의 철저한 이해와 최적화
+코드 20 (원문 907행)
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ChatRequest {
+
+  String message;
+
+}
+코드 21 (원문 919행)
+@Getter
+@Builder
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class ChatResponse {
+
+  String message;
+
+}
+코드 22 (원문 928행)
+@Getter
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public enum DomainExceptionCode {
+
+    // ... 기존 코드들 ...
+
+    // AI 서비스 관련 에러 코드
+    AI_SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "AI 서비스를 현재 사용할 수 없습니다."),
+    AI_RESPONSE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "AI 응답 처리 중 오류가 발생했습니다."),
+    AI_QUOTA_EXCEEDED(HttpStatus.TOO_MANY_REQUESTS, "AI 호출 횟수가 초과되었습니다. 잠시 후 다시 시도해주세요.");
+
+    final HttpStatus status;
+    final String message;
+}
+코드 23 (원문 944행)
+import com.sparta.msa.lesson.domain.ai.dto.response.ChatResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.stereotype.Service;
+
+@Service
+@RequiredArgsConstructor
+public class ChatService {
+
+  private final ChatClient.Builder clientBuilder;
+
+  public ChatResponse chat(String message) {
+    try {
+      String response = clientBuilder.build()
+          .prompt()
+          .user(message)
+          .call()
+          .content();
+
+      return ChatResponse.builder().message(response).build();
+    } catch (Exception e) {
+      throw new DomainException(DomainExceptionCode.AI_RESPONSE_ERROR);
+    }
+  }
+
+  public ChatResponse chatWithContext(String userMessage) {
+    try {
+      String response = clientBuilder.build()
+          .prompt()
+          .system("""
+코드 24 (원문 994행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/ai-chat")
+public class ChatController {
+
+  private final ChatService chatService;
+
+  @PostMapping
+  public ApiResponse<ChatResponse> chat(@RequestBody ChatRequest request) {
+    return ApiResponse.ok(chatService.chat(request.getMessage()));
+  }
+
+  @PostMapping("/context")
+  public ApiResponse<ChatResponse> context(@RequestBody ChatRequest request) {
+    return ApiResponse.ok(chatService.chat(request.getMessage()));
+  }
+
+}
+06 · 5주차 1일차 HTTP Session
+원본: 붙여넣은 텍스트(1)(9).txt · 발췌 7개
+
+코드 1 (원문 57행)
+spring:
+  # 데이터베이스 연결 설정
+  datasource:
+    url: jdbc:mysql://localhost:3306/spring_db?useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: root
+코드 2 (원문 155행)
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/categories")
+public class CategoryController {
+
+  private final JsonUtil jsonUtil;
+  private final CategoryService categoryService;
+
+  @GetMapping("/caches")
+  public ApiResponse<List<CategoryResponse>> findAllByCaches(HttpSession httpSession) {
+    final String CATEGORY_CACHE_KEY = "cachedCategoriesJson";
+
+    String cachedCategoriesJson = (String) httpSession.getAttribute(CATEGORY_CACHE_KEY);
+
+    if (cachedCategoriesJson == null) {
+      List<CategoryResponse> freshCategories = categoryService.findAll();
+      httpSession.setAttribute(CATEGORY_CACHE_KEY, JsonUtil.toJson(freshCategories));
+
+      return ApiResponse.ok(freshCategories);
+    } else {
+      List<CategoryResponse> cachedCategories = JsonUtil.fromJsonList(
+코드 3 (원문 182행)
+public static <T> List<T> fromJsonList(String jsonString, Class<T> clazz) {
+    try {
+코드 4 (원문 193행)
+@Getter
+@Builder
+@AllArgsConstructor // 추가 필요
+@NoArgsConstructor // 추가 필요
+@FieldDefaults(level = AccessLevel.PRIVATE)
+public class CategoryResponse {
+
+  Long id;
+
+  String name;
+
+  List<CategoryResponse> childCategories;
+
+}
+2. 요청/응답 흐름:
+코드 5 (원문 393행)
+
+
+
+내장 웹 서버 설정
+server:
+  port: 8080
+  servlet:
+    session:
+      cookie:
+
+
+### 코드 6 (원문 401행)
+
+```java
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/auth")
+public class AuthController {
+
+  private final AuthService authService;
+  
+  @PostMapping("registration")
+  public ApiResponse<Void> registration(@Valid @RequestBody RegistrationRequest request) {
+    authService.registration(request);
+    return ApiResponse.ok();
+  }
+
+  @PostMapping("/login")
+  public ApiResponse<LoginResponse> login(HttpSession httpSession,
+      @Valid @RequestBody LoginRequest loginRequest) {
+    LoginResponse loginResponse = authService.login(loginRequest);
+
+    httpSession.setAttribute("userId", loginResponse.getUserId());
+    httpSession.setAttribute("email", loginResponse.getEmail());
+
+    log.info("session id : {}", httpSession.getId());
+
+    return ApiResponse.success(loginResponse);
+  }
+
+  @GetMapping("/status")
+  public ApiResponse<LoginResponse> checkStatus(HttpSession httpSession) {
+    Long userId = (Long) httpSession.getAttribute("userId");
+    String email = (String) httpSession.getAttribute("email");
+
+    if (ObjectUtils.isEmpty(userId) && ObjectUtils.isEmpty(email)) {
+      throw new ServiceException(ServiceExceptionCode.NOT_FOUND_USER);
+    }
+
+    return ApiResponse.success(authService.getLoginResponse(userId, email));
+  }
+
+  @GetMapping("/logout")
+  public ApiResponse<Void> logout(HttpSession httpSession) {
+    httpSession.invalidate();
+    return ApiResponse.success();
+  }
+}
+코드 7 (원문 447행)
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+  private final UserRepository userRepository;
+
+  @Transactional
+  public void registration(RegistrationRequest request) {
+    userRepository.save(User.builder()
+        .name(request.getName())
+        .phone(request.getPhone())
+        .email(request.getEmail())
+        .password(request.getPassword()) //TODO : 암호화 필요
+        .gender(request.getGender())
+        .build());
+  }
+
+  @Transactional
+  public LoginResponse login(LoginRequest loginRequest) {
+07 · 5주차 2일차 Redis 데이터 타입
+원본: 붙여넣은 텍스트(1)(20261013-135833).txt · 발췌 20개
+
+코드 1 (원문 166행)
+dependencies {
+    // Redis와 통신하기 위한 라이브러리
+    implementation 'org.springframework.session:spring-session-data-redis'
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+}
+코드 2 (원문 176행)
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: # 비밀번호가 없다면 비워둡니다.
+      # timeout: 1s
+      # database: 0
+host: Redis 서버가 실행 중인 호스트 IP 또는 도메인입니다. Docker를 로컬에서 실행하고 있다면 localhost를 사용합니다.
+port: Redis 서버가 리스닝하는 포트입니다. 기본값은 6379입니다.
+password: Redis 서버에 비밀번호가 설정되어 있다면 여기에 입력합니다. Docker로 실행한 기본 Redis 이미지에는 비밀번호가 설정되어 있지 않으므로 비워두거나 #으로 주석 처리해도 됩니다. (보안상 프로덕션 환경에서는 반드시 비밀번호를 설정해야 합니다.)
+코드 3 (원문 192행)
+@GetMapping("/caches")
+  public ApiResponse<List<CategoryResponse>> findAllByCaches(HttpSession httpSession) {
+    final String CATEGORY_CACHE_KEY = "cachedCategoriesJson";
+
+    String cachedCategoriesJson = (String) httpSession.getAttribute(CATEGORY_CACHE_KEY);
+
+    if (cachedCategoriesJson == null) {
+      List<CategoryResponse> freshCategories = categoryService.findAll();
+      httpSession.setAttribute(CATEGORY_CACHE_KEY, JsonUtil.toJson(freshCategories));
+
+      return ApiResponse.ok(freshCategories);
+    } else {
+      List<CategoryResponse> cachedCategories = JsonUtil.fromJsonList(
+코드 4 (원문 235행)
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.session.data.redis.config.annotation.web.http.EnableRedisHttpSession;
+
+@Configuration
+@EnableRedisHttpSession // Redis를 세션 저장소로 사용하도록 활성화
+public class SessionConfig {
+
+  @Bean
+  public GenericJackson2JsonRedisSerializer springSessionDefaultRedisSerializer() {
+    // 세션 속성 값을 Java 직렬화 대신 JSON 형태로 저장하도록 설정
+    return new GenericJackson2JsonRedisSerializer();
+  }
+}
+코드 5 (원문 258행)
+@SpringBootTest
+public class RedisDataStructureTest {
+
+  private static final Logger log = LoggerFactory.getLogger(RedisDataStructureTest.class);
+
+  @Autowired
+  private RedisTemplate<String, String> redisTemplate;
+
+  @Test
+  public void redisBasicTest() {
+    redisTemplate.opsForValue().set("myRedisKey", "Hello World!");
+    String myRedisValue = redisTemplate.opsForValue().get("myRedisKey");
+    log.info("value: {}", myRedisValue);
+  }
+
+}
+String (문자열)
+특징:
+코드 6 (원문 289행)
+@Test
+  public void testStringBasicOperations() {
+    final String key = "user:123:session";
+    final String value = "active";
+
+    redisTemplate.opsForValue().set(key, value);
+    log.info("저장: Key={}, Value={}", key, value);
+
+    String sessionStatus = redisTemplate.opsForValue().get(key);
+    log.info("조회된 세션 상태: {}", sessionStatus); // active
+
+    assert sessionStatus.equals(value);
+  }
+코드 7 (원문 304행)
+@Test
+  public void testStringCounterOperations() {
+    final String pageViewsKey = "page:views";
+    final String likesKey = "item:123:likes";
+
+    redisTemplate.delete(pageViewsKey);
+    redisTemplate.delete(likesKey);
+
+    // 1. 1 증가 (jedis.incr)
+    // 키가 없으면 0에서 시작하여 1을 반환합니다.
+    Long pageViewsAfterIncr = redisTemplate.opsForValue().increment(pageViewsKey);
+    log.info("{}: 1 증가 후: {}", pageViewsKey, pageViewsAfterIncr); // 1
+
+    // 2. 1 감소 (jedis.decr)
+    Long pageViewsAfterDecr = redisTemplate.opsForValue().decrement(pageViewsKey);
+    log.info("{}: 1 감소 후: {}", pageViewsKey, pageViewsAfterDecr); // 0
+
+    // 3. 특정 값(5) 증가 (jedis.incrBy)
+    Long likesAfterIncrBy = redisTemplate.opsForValue().increment(likesKey, 5);
+    log.info("{}: 5 증가 후: {}", likesKey, likesAfterIncrBy); // 5
+
+    // 4. 데이터 조회 및 Long 변환
+    String pageViewsStr = redisTemplate.opsForValue().get(pageViewsKey);
+    long pageViews = Long.parseLong(pageViewsStr);
+    log.info("최종 조회된 페이지 뷰 수 (Long 변환): {}", pageViews); // 0
+
+    assert pageViews == 0;
+    assert redisTemplate.opsForValue().get(likesKey).equals("5");
+  }
+코드 8 (원문 353행)
+// 1. 작업 대기열 생성 (LIFO 스택 방식 구현 - Head(왼쪽)에 삽입)
+Long listSize = redisTemplate.opsForList().leftPushAll(TASKS_KEY, "Task1", "Task2", "Task3");
+
+// Redis 리스트 상태: [Task3, Task2, Task1]
+log.info("{}: 3개 삽입 후 크기: {}", TASKS_KEY, listSize);
+코드 9 (원문 360행)
+// 2. 작업 처리 (FIFO 큐 방식 구현 - Tail(오른쪽)에서 제거)
+String task1 = redisTemplate.opsForList().rightPop(TASKS_KEY);
+log.info("RightPop (Task1 처리): {}", task1); // Task1
+
+String task2 = redisTemplate.opsForList().rightPop(TASKS_KEY);
+log.info("RightPop (Task2 처리): {}", task2); // Task2
+
+// 최종 리스트 상태: [Task3]
+코드 10 (원문 370행)
+// 최근 메시지 조회
+redisTemplate.opsForList().rightPushAll(CHAT_KEY, "Message A", "Message B", "Message C");
+// 리스트 상태: [Message A, Message B, Message C]
+
+// range: 0부터 -1까지 (전체) 조회
+List<String> messages = redisTemplate.opsForList().range(CHAT_KEY, 0, -1);
+log.info("{}: 전체 메시지 조회 결과: {}", CHAT_KEY, messages);
+// 리스트 상태: [Message A, Message B, Message C]
+코드 11 (원문 400행)
+// 고유 사용자 저장
+// add: Set에 값을 추가합니다. 중복된 "User1"은 무시됩니다.
+Long addedCount = redisTemplate.opsForSet().add(PARTICIPANTS_KEY, "User1", "User2", "User3", "User1");
+log.info("Participants에 추가된 고유 사용자 수: {}", addedCount); // 3
+
+// members: Set의 모든 멤버(요소)를 조회합니다.
+Set<String> participants = redisTemplate.opsForSet().members(PARTICIPANTS_KEY);
+log.info("{}: 고유 사용자 목록: {}", PARTICIPANTS_KEY, participants); 
+// {"User1", "User2", "User3"} (순서 보장 안됨)
+코드 12 (원문 411행)
+// 집합 데이터
+redisTemplate.opsForSet().add(EVENT1_KEY, "User1", "User2", "User4");
+redisTemplate.opsForSet().add(EVENT2_KEY, "User2", "User3", "User4");
+
+// 교집합 구하기
+// intersect: EVENT1과 EVENT2의 공통 멤버를 Set으로 반환합니다.
+Set<String> commonUsers = redisTemplate.opsForSet().intersect(EVENT1_KEY, EVENT2_KEY);
+log.info("교집합 (Common Users): {}", commonUsers); // {"User2", "User4"}
+
+
+// 합집합 구하기 (jedis.sunion)
+// union: EVENT1과 EVENT2의 모든 멤버를 합쳐 Set으로 반환합니다.
+Set allUsers = redisTemplate.opsForSet().union(EVENT1_KEY, EVENT2_KEY);
+log.info("합집합 (All Users): {}", allUsers); // {"User1", "User2", "User3", "User4"}
+
+// 차집합 구하기 (EVENT1에는 있지만 EVENT2에는 없는 사용자)
+// difference: 첫 번째 키(EVENT1)에는 있지만 나머지 키(EVENT2)에는 없는 멤버를 반환합니다.
+Set onlyInEvent1 = redisTemplate.opsForSet().difference(EVENT1_KEY, EVENT2_KEY);
+log.info("차집합 (Only in Event1): {}", onlyInEvent1); // {"User1"}
+
+
+### 코드 13 (원문 448행)
+
+```java
+// hSet: Hash에 특정 필드(Field)와 값(Value)을 저장합니다.
+redisTemplate.opsForHash().put(USER_PROFILE_KEY, "name", "John Doe");
+redisTemplate.opsForHash().put(USER_PROFILE_KEY, "email", "john.doe@example.com");
+redisTemplate.opsForHash().put(USER_PROFILE_KEY, "age", "30");
+redisTemplate.opsForHash().put(USER_PROFILE_KEY, "city", "Seoul");
+코드 14 (원문 455행)
+// get: Hash Key에서 특정 필드에 해당하는 값을 조회합니다.
+String name = (String) redisTemplate.opsForHash().get(USER_PROFILE_KEY, "name");
+String email = (String) redisTemplate.opsForHash().get(USER_PROFILE_KEY, "email");
+
+log.info("조회된 이름 (name): {}", name);     // John Doe
+log.info("조회된 이메일 (email): {}", email); // john.doe@example.com
+코드 15 (원문 463행)
+// entries: Hash Key의 모든 필드-값 쌍을 Map<Object, Object> 형태로 반환합니다.
+Map<Object, Object> userProfile = redisTemplate.opsForHash().entries(USER_PROFILE_KEY);
+
+log.info("{}: 모든 필드-값 쌍 조회: {}", USER_PROFILE_KEY, userProfile);
+// 출력: {name=John Doe, email=john.doe@example.com, age=30, city=Seoul}
+코드 16 (원문 488행)
+// add: 값(member)과 점수(score)를 함께 저장합니다.
+redisTemplate.opsForZSet().add(LEADERBOARD_KEY, "Player1", 1500.0);
+redisTemplate.opsForZSet().add(LEADERBOARD_KEY, "Player2", 2000.0);
+redisTemplate.opsForZSet().add(LEADERBOARD_KEY, "Player3", 1800.0);
+코드 17 (원문 494행)
+// reverseRange: 점수가 높은 순(내림차순)으로 지정된 범위(0번째부터 1번째까지, 즉 상위 2명)의 멤버를 조회합니다.
+Set<String> topPlayers = redisTemplate.opsForZSet().reverseRange(LEADERBOARD_KEY, 0, 1);
+log.info("상위 2명 조회 (내림차순): {}", topPlayers);
+// 결과: [Player2, Player3] (Redis의 순서대로 출력되며, Set이 아닌 List와 유사한 순서로 반환됨)
+코드 18 (원문 500행)
+// incrementScore: 특정 멤버의 점수를 지정된 값만큼 증가시킵니다.
+Double newScore = redisTemplate.opsForZSet().incrementScore(LEADERBOARD_KEY, "Player1", 100.0);
+log.info("Player1의 점수 업데이트: 1500.0 -> {}", newScore); // 1600.0
+코드 19 (원문 505행)
+// rangeByScore: 지정된 점수 범위 내의 멤버를 조회합니다.
+Set<String> playersInRange = redisTemplate.opsForZSet().rangeByScore(LEADERBOARD_KEY, 1600.0, 1900.0);
+log.info("점수 1600.0 ~ 1900.0 범위 플레이어: {}", playersInRange);
+// 결과: [Player1, Player3]
+코드 20 (원문 511행)
+// rank: 점수가 낮은 순(오름차순)으로 해당 멤버의 순위를 반환합니다.
+Long rankOfPlayer3 = redisTemplate.opsForZSet().rank(LEADERBOARD_KEY, "Player3");
+log.info("Player3의 오름차순 순위 (0부터 시작): {}", rankOfPlayer3); 
+// 1 (0:Player1, 1:Player3, 2:Player2)
+08 · 5주차 3일차 Redis 캐싱
+원본: 붙여넣은 텍스트(1)(20261015-135916).txt · 발췌 15개
+
+코드 1 (원문 51행)
+String cachedResult = redisTemplate.opsForValue().get("search:query");
+
+if (cachedResult == null) {
+    cachedResult = database.search("query");
+    redisTemplate.opsForValue().set("search:query", cachedResult, Duration.ofMinutes(10));
+}
+
+return cachedResult;
+2. 부하 감소
+코드 2 (원문 72행)
+@PostMapping("/blog/{id}")
+public BlogPost getBlogPost(@PathVariable String id) {
+    String cacheKey = "blog:post:" + id;
+    BlogPost blogPost = redisTemplate.opsForValue().get(cacheKey);
+    
+    if (blogPost == null) {
+        blogPost = blogPostRepository.findById(id);
+        redisTemplate.opsForValue().set(cacheKey, blogPost, Duration.ofMinutes(30));
+    }
+    
+    return blogPost;
+}
+3. 비용 절감
+코드 3 (원문 95행)
+String exchangeRate = redisTemplate.opsForValue().get("exchangeRate:USD_EUR");
+
+if (exchangeRate == null) {
+    exchangeRate = externalApi.getExchangeRate("USD", "EUR");
+    redisTemplate.opsForValue().set("exchangeRate:USD_EUR", exchangeRate, Duration.ofHours(24));
+}
+
+return exchangeRate;
+코드 4 (원문 127행)
+@SpringBootTest
+public class CachePatternTest {
+
+  private static final Logger log = LoggerFactory.getLogger(CachePatternTest.class);
+
+  private Map<Long, String> cacheTemplate = new HashMap<>();
+  private Map<Long, String> userRepository = new HashMap<>();
+
+  @BeforeEach
+  void setUp() {
+    userRepository.put(1L, "김철수");
+    userRepository.put(2L, "최민수");
+  }
+
+  @Test
+  public void cacheAsidePattern() {
+    Long searchUserId = 1L;
+
+    String cachedData = cacheTemplate.get(searchUserId);
+
+    if (cachedData != null) {
+      log.info("캐시에서 온 데이터 : {}", cachedData);
+      return;
+    }
+
+    log.info("사용자 ID {}의 데이터를 데이터베이스에서 조회합니다.", searchUserId);
+    
+    String dbData = userRepository.get(searchUserId);
+
+    if (StringUtils.hasText(dbData)) {
+      cacheTemplate.put(searchUserId, dbData);
+      log.info("사용자 ID {}의 데이터를 캐시에 저장했습니다.", searchUserId);
+    } else {
+      log.info("사용자 ID {}의 데이터가 데이터베이스에 존재하지 않습니다.", searchUserId);
+    }
+  }
+}
+장점:
+코드 5 (원문 185행)
+@Test
+  public void writeThroughPattern() {
+    Long updateUserId = 1L;
+    String updateData = "김수현";
+
+    log.info("Write-through: 사용자 ID {}의 데이터 저장 요청.", updateUserId);
+
+    try {
+      cacheTemplate.put(updateUserId, updateData);
+      log.info("캐시에 사용자 ID {}의 데이터 저장 완료.", updateUserId);
+
+      userRepository.put(updateUserId, updateData);
+      log.info("데이터베이스에 사용자 ID {}의 데이터 저장 완료.", updateUserId);
+
+      log.info("Write-through: 사용자 ID {}의 데이터 캐시와 DB에 성공적으로 저장되었습니다.", updateUserId);
+    } catch (Exception e) {
+      log.info("Write-through 실패! 사용자 ID {} 의 데이터 저장 중 오류 발생: {}", updateUserId, e.getMessage());
+      throw new RuntimeException("데이터 저장 실패", e);
+    }
+  }
+장점:
+코드 6 (원문 225행)
+@Test
+  public void writeBackPattern() {
+    Long updateUserId = 1L;
+    String updateData = "김수현";
+
+    log.info("Write-back: 사용자 ID {}의 데이터 저장 요청 (캐시 우선).", updateUserId);
+
+    cacheTemplate.put(updateUserId, updateData);
+    log.info("캐시에 사용자 ID {}의 데이터 저장 완료. (응답 즉시 반환)", updateUserId);
+
+    // 실제 프로덕션에서는 메시지 큐(Kafka, RabbitMQ)나 스케줄러(Quartz)와 결합하여 견고하게 구현됨
+    CompletableFuture.runAsync(() -> {
+      try {
+        userRepository.put(updateUserId, updateData);
+        log.info("비동기 DB 업데이트 완료: 사용자 ID {}의 데이터가 DB에 최종 저장되었습니다.", updateUserId);
+      } catch (Exception e) {
+        log.info("비동기 DB 업데이트 실패! 사용자 ID {} : {}", updateUserId, e.getMessage());
+      }
+    });
+  }
+장점:
+코드 7 (원문 266행)
+@Test
+  public void writeAroundPattern() {
+    Long updateUserId = 1L;
+    String updateData = "김수현";
+
+    log.info("Write-around: 사용자 ID {}의 데이터 저장 요청 (DB에만 저장).", updateUserId);
+
+    userRepository.put(updateUserId, updateData);
+    log.info("데이터베이스에 사용자 ID {}의 데이터 저장 완료.", updateUserId);
+
+    //선택 사항: 만약 캐시에 해당 userId의 오래된 데이터가 있을 수 있다면, 명시적으로 삭제하여 다음 읽기 시 DB에서 가져오도록 유도.
+    cacheTemplate.remove(updateUserId);
+    log.info("(선택적) 사용자 ID {}의 캐시 데이터 삭제 완료.", updateUserId);
+    //이후, cacheAsidePattern()과 동일한 로직으로 조회 시, 캐시 갱신
+  }
+장점:
+코드 8 (원문 330행)
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class CategoryService {
+
+  //TODO: Constants 클래스로 통합 필요
+  private static final String CACHE_KEY_CATEGORY = "cachedCategories";
+
+  private final RedisTemplate<String, String> redisTemplate;
+
+  private final CategoryRepository categoryRepository;
+
+  @Transactional(readOnly = true)
+  public List<CategoryResponse> findAllForCacheAside() {
+    // 1. 캐시에서 카테고리 구조 데이터 조회 시도
+    String cachedCategories = redisTemplate.opsForValue().get(CACHE_KEY_CATEGORY);
+
+    // 2. 캐시 히트
+    if (!ObjectUtils.isEmpty(cachedCategories)) {
+      log.info("Cache Hit: categoryStruct for key = {}", CACHE_KEY_CATEGORY);
+      return JsonUtil.fromJsonList(cachedCategories, CategoryResponse.class);
+    }
+
+    // 3. 캐시 미스, 데이터베이스에서 조회 (findAll() 호출)
+    log.info("Cache Miss: categoryStruct for key = {}", CACHE_KEY_CATEGORY);
+    List<CategoryResponse> categories = findAll();
+
+    // 4. 데이터베이스에서 조회한 데이터를 캐시에 저장
+    if (!categories.isEmpty()) {
+      String cacheCategories = JsonUtil.toJson(categories);
+      redisTemplate.opsForValue().set(CACHE_KEY_CATEGORY, cacheCategories);
+    }
+
+    return categories;
+  }
+
+
+  @Transactional(readOnly = true)
+  public List findAll() {
+    List categories = categoryRepository.findAll();
+
+Map<Long, CategoryResponse> categoryResponseMap = new HashMap<>();
+
+for (Category category : categories) {
+
+### 코드 9 (원문 428행)
+
+```java
+@Transactional
+  public void saveWriteThrough(CategoryRequest request) {
+    try {
+      create(request); // 데이터 베이스 신규 카테고리 저장
+      updateCacheCategories(); // 캐시 업데이트 메서드 호출
+    } catch (Exception e) {
+      log.error("Failed to save category with Write-through: {}", e.getMessage(), e);
+    }
+  }
+
+  private void updateCacheCategories() {
+    try {
+      List<CategoryResponse> categories = findAll();
+
+      if (!categories.isEmpty()) {
+        String cacheCategories = JsonUtil.toJson(categories);
+        redisTemplate.opsForValue().set(CACHE_KEY_CATEGORY, cacheCategories);
+      }
+    } catch (Exception e) {
+      log.error("Error updating cache key {}: {}", CACHE_KEY_CATEGORY, e.getMessage());
+    }
+  }
+
+  private void create(CategoryRequest request) {
+    Category.CategoryBuilder category = Category.builder().name(request.getName());
+
+    if (!ObjectUtils.isEmpty(request.getParentCategoryId())) {
+      Category parentCategory = getCategory(request.getParentCategoryId());
+      category.parentCategory(parentCategory);
+    }
+
+    categoryRepository.save(category.build());
+  }
+코드 10 (원문 484행)
+@Transactional
+  public void saveWriteBack(CategoryRequest request) {
+    try {
+      // 1. 캐시에서 카테고리 구조 데이터 조회 시도
+      String cachedCategories = redisTemplate.opsForValue().get(CACHE_KEY_CATEGORY);
+
+      List<CategoryResponse> categories = new ArrayList<>();
+
+      // 2. 캐싱 데이터가 있다면 캐싱 데이터 불러오기
+      if (!ObjectUtils.isEmpty(cachedCategories)) {
+        categories = JsonUtil.fromJsonList(cachedCategories, CategoryResponse.class);
+      }
+
+      // 3. 캐시에 새로운 카테고리 데이터 추가
+코드 11 (원문 592행)
+// TTL 설정하여 저장
+redisTemplate.opsForValue().set(CACHE_KEY_CATEGORY, cacheCategories, 1, TimeUnit.HOURS);
+코드 12 (원문 644행)
+CONFIG SET maxmemory-policy allkeys-lru     # 모든 키에 대해 LRU 정책으로 즉시 변경
+CONFIG SET maxmemory-policy volatile-lfu    # 만료 시간이 설정된 키에만 LFU 사용
+코드 13 (원문 678행)
+
+
+
+60초/1000개 AND 300초/10개 정책을 설정
+CONFIG SET save "60 1000 300 10"
+
+현재 설정 값 확인
+CONFIG GET save
+장점:
+
+
+### 코드 14 (원문 699행)
+
+```shell
+
+
+AOF 현재 설정 값 확인
+CONFIG GET appendonly
+
+AOF 기능 활성화
+CONFIG SET appendonly yes
+
+AOF 기능 비활성화
+CONFIG SET appendonly no
+
+
+### 코드 15 (원문 708행)
+
+```shell
+
+
+동기화 현재 설정 값 확인
+CONFIG GET appendfsync
+
+매 초마다 동기화 (기본값, 추천)
+CONFIG SET appendfsync everysec
+
+모든 쓰기 명령마다 동기화 (가장 안전하지만 느림)
+CONFIG SET appendfsync always
+
+운영체제에 맡김 (가장 빠르지만 위험)
+CONFIG SET appendfsync no
+장점:
+
+
+## 09 · 5주차 4일차 Redis 인증
+
+원본: `붙여넣은 텍스트(1)(20261015-135949).txt` · 발췌 25개
+
+### 코드 1 (원문 126행)
+
+```groovy
+dependencies {
+    // Spring Security 프레임워크를 통합하기 위한 의존성
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    
+    // Spring Session과 Redis를 연동하기 위한 의존성
+    // 이 의존성을 추가하면 Redis를 세션 저장소로 사용할 수 있도록 Spring Session이 자동 구성됩니다.
+    implementation 'org.springframework.session:spring-session-data-redis'
+    
+    // Spring Data Redis: Redis 클라이언트를 추상화하고 Spring의 데이터 접근 계층과 통합합니다.
+    // 내부적으로 Lettuce(기본) 또는 Jedis 클라이언트를 사용합니다.
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+}
+코드 2 (원문 141행)
+docker run --name redis-server -p 6379:6379 -d redis
+docker run: 새 Docker 컨테이너를 실행합니다.
+--name redis-server: 컨테이너 이름을 지정합니다.
+-p 6379:6379: 호스트 머신의 6379번 포트를 컨테이너의 6379번 포트에 연결(포트 포워딩)합니다.
+코드 3 (원문 156행)
+@Configuration
+@EnableRedisIndexedHttpSession
+public class SessionConfig {
+
+    @Bean
+    public RedisSerializer<Object> springSessionDefaultRedisSerializer() {
+        return new JdkSerializationRedisSerializer(getClass().getClassLoader());
+    }
+
+    @Bean
+    public SessionRegistry sessionRegistry(RedisIndexedSessionRepository sessionRepository) {
+        return new SpringSessionBackedSessionRegistry<>(sessionRepository);
+    }
+
+}
+코드 4 (원문 191행)
+@Getter
+public class CustomUserDetails implements UserDetails, CredentialsContainer, Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private final Long userId;
+    private final String email;
+    private final Role role;
+    private String password;
+
+    public CustomUserDetails(Long userId, String email, Role role, String password) {
+        this.userId = userId;
+        this.email = email;
+        this.role = role;
+        this.password = password;
+    }
+
+    public static CustomUserDetails from(User user) {
+        return new CustomUserDetails(user.getId(), user.getEmail(), user.getRole(), user.getPassword());
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return password;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
+    public void eraseCredentials() {
+        this.password = null;
+    }
+
+}
+코드 5 (원문 254행)
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
+
+    private final UserRepository userRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+코드 6 (원문 281행)
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    public static final String[] SECURITY_EXCLUDE_PATHS = {
+            "/public/**", "/api/swagger-ui/**", "/swagger-ui/**", "/swagger-ui.html",
+            "/api/v3/api-docs/**", "/v3/api-docs/**", "/favicon.ico", "/actuator/**",
+            "/swagger-resources/**", "/external/**", "/api/auth/register", "/api/auth/admin/register",
+            "/api/auth/login"
+    };
+
+    private static final int MAXIMUM_SESSIONS = 1;
+
+    private final ObjectMapper objectMapper;
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http, SessionRegistry sessionRegistry)
+            throws Exception {
+코드 7 (원문 301행)
+.csrf(AbstractHttpConfigurer::disable)
+                .securityContext(context -> context
+                        .securityContextRepository(securityContextRepository())
+                )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+                )
+                .addFilter(new ConcurrentSessionFilter(sessionRegistry, event ->
+                        writeError(event.getResponse(), DomainExceptionCode.SESSION_EXPIRED)
+                ))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(SECURITY_EXCLUDE_PATHS).permitAll()
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/**").hasAnyRole("USER", "ADMIN")
+                        .anyRequest().authenticated()
+                )
+                .formLogin(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) ->
+                                writeError(response, DomainExceptionCode.UNAUTHORIZED_ACCESS)
+                        )
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                writeError(response, DomainExceptionCode.ACCESS_DENIED)
+                        )
+                );
+
+        return http.build();
+    }
+
+    @Bean
+    public SessionAuthenticationStrategy sessionAuthenticationStrategy(
+            SessionRegistry sessionRegistry) {
+코드 8 (원문 404행)
+.sessionManagement(session -> session
+        .maximumSessions(1)                // 계정당 동시에 유지할 수 있는 세션 수
+        .maxSessionsPreventsLogin(false)   // 초과 시 동작 (false: 기존 세션 만료, true: 새 로그인 거부)
+)
+코드 9 (원문 434행)
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class AuthService {
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final SessionAuthenticationStrategy sessionAuthenticationStrategy;
+    private final SecurityContextRepository securityContextRepository;
+    private final UserSessionManager userSessionManager;
+
+    @Transactional
+    public void register(RegisterRequest request) {
+        saveUser(request, Role.USER);
+    }
+
+    @Transactional
+    public void registerAdmin(RegisterRequest request) {
+        saveUser(request, Role.ADMIN);
+    }
+
+    public LoginResponse login(LoginRequest loginRequest, HttpServletRequest request,
+                               HttpServletResponse response) {
+        Authentication authentication = authenticate(loginRequest);
+
+        sessionAuthenticationStrategy.onAuthentication(authentication, request, response);
+
+        SecurityContext context = SecurityContextHolder.createEmptyContext();
+        context.setAuthentication(authentication);
+        SecurityContextHolder.setContext(context);
+        securityContextRepository.saveContext(context, request, response);
+
+        return LoginResponse.from((CustomUserDetails) authentication.getPrincipal());
+    }
+
+    @Transactional(readOnly = true)
+    public void forceLogout(Long userId) {
+코드 10 (원문 533행)
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final AuthService authService;
+    private final LogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+
+    @PostMapping("/register")
+    public ApiResponse<Void> register(@Valid @RequestBody RegisterRequest request) {
+        authService.register(request);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/admin/register")
+    public ApiResponse<Void> registerAdmin(@Valid @RequestBody RegisterRequest request) {
+        authService.registerAdmin(request);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/login")
+    public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest,
+                                            HttpServletRequest request, HttpServletResponse response) {
+        LoginResponse loginResponse = authService.login(loginRequest, request, response);
+        return ApiResponse.ok(loginResponse);
+    }
+
+    @GetMapping("/status")
+    public ApiResponse<LoginResponse> checkStatus(
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.ok(LoginResponse.from(userDetails));
+    }
+
+    @PostMapping("/logout")
+    public ApiResponse<Void> logout(HttpServletRequest request, HttpServletResponse response,
+                                    Authentication authentication) {
+        logoutHandler.logout(request, response, authentication);
+        return ApiResponse.ok();
+    }
+
+    @PostMapping("/admin/users/{userId}/logout")
+    public ApiResponse<Void> forceLogout(@PathVariable Long userId) {
+        authService.forceLogout(userId);
+        return ApiResponse.ok();
+    }
+
+
+}
+
+
+### 코드 11 (원문 628행)
+
+```bash
+
+
+세션 본문 (SecurityContext 등 세션 속성)
+spring:session:sessions:{세션ID}
+
+사용자 인덱스: 이메일 → 이 사용자의 세션 ID 목록 (Set)
+spring:session:index:org.springframework.session.FindByIndexNameSessionRepository.PRINCIPAL_NAME_INDEX_NAME:{이메일}
+
+
+### 코드 12 (원문 664행)
+
+```java
+@Component
+@RequiredArgsConstructor
+public class UserSessionManager {
+
+    private final FindByIndexNameSessionRepository<? extends Session> sessionRepository;
+
+    public void logoutAll(String email) {
+        sessionRepository.findByPrincipalName(email).keySet()
+                .forEach(sessionRepository::deleteById);
+    }
+
+}
+코드 13 (원문 686행)
+public enum Role {
+    USER,
+    ADMIN,
+    ;
+}
+코드 14 (원문 692행)
+-- src/main/resources/db/migration/V2__add_user_role.sql
+ALTER TABLE user
+    ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'USER' COMMENT '권한' AFTER gender;
+코드 15 (원문 696행)
+public class User extends BaseEntity {
+
+    // ...
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    Role role;
+}
+코드 16 (원문 711행)
+// AuthController
+@PostMapping("/admin/register")
+public ApiResponse<Void> registerAdmin(@Valid @RequestBody RegisterRequest request) {
+    authService.registerAdmin(request);
+    return ApiResponse.ok();
+}
+코드 17 (원문 718행)
+// AuthService
+@Transactional
+public void registerAdmin(RegisterRequest request) {
+    saveUser(request, Role.ADMIN);
+}
+코드 18 (원문 727행)
+// AuthController
+@PostMapping("/admin/users/{userId}/logout")
+public ApiResponse<Void> forceLogout(@PathVariable Long userId) {
+    authService.forceLogout(userId);
+    return ApiResponse.ok();
+}
+코드 19 (원문 734행)
+// AuthService
+@Transactional(readOnly = true)
+public void forceLogout(Long userId) {
+코드 20 (원문 757행)
+public class CustomUserDetails implements UserDetails, CredentialsContainer, Serializable {
+
+    private String password;  // final 제거
+
+    @Override
+    public void eraseCredentials() {
+        this.password = null;
+    }
+}
+코드 21 (원문 775행)
+@Bean
+public ConfigureRedisAction configureRedisAction() {
+    return ConfigureRedisAction.NO_OP;
+}
+코드 22 (원문 819행)
+{
+  "data": {
+    "userId": 1,
+    "email": "user@example.com"
+  }
+}
+코드 23 (원문 853행)
+{
+  "error": {
+    "errorCode": "SESSION_EXPIRED",
+    "errorMessage": "다른 기기에서 로그인하여 현재 세션이 만료되었습니다."
+  }
+}
+코드 24 (원문 886행)
+{
+  "error": {
+    "errorCode": "ACCESS_DENIED",
+    "errorMessage": "접근 권한이 없습니다."
+  }
+}
+코드 25 (원문 913행)
+{
+  "error": {
+    "errorCode": "UNAUTHORIZED_ACCESS",
+    "errorMessage": "인증되지 않은 접근입니다."
+  }
+}
