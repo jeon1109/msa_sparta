@@ -28,6 +28,7 @@ public class Product {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
+  @Column(name = "category_id")
   private Long categoryId;
 
   @ManyToOne(fetch = FetchType.LAZY)
