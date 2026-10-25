@@ -18,18 +18,18 @@ public class ChatController {
   @PostMapping
   public ApiResponse<ChatResponse> chat(
       @Valid @RequestBody ChatRequest request, @AuthenticationPrincipal CustomUserDetails user) {
-    return ApiResponse.ok(service.chat(user.getUserId(), request.message(), false));
+    return ApiResponse.ok(service.chat(user.getUserId(), request.getMessage(), false));
   }
 
   @PostMapping("/cached")
   public ApiResponse<ChatResponse> cached(
       @Valid @RequestBody ChatRequest request, @AuthenticationPrincipal CustomUserDetails user) {
-    return ApiResponse.ok(service.cached(user.getUserId(), request.message()));
+    return ApiResponse.ok(service.cached(user.getUserId(), request.getMessage()));
   }
 
   @PostMapping("/context")
   public ApiResponse<ChatResponse> context(
       @Valid @RequestBody ChatRequest request, @AuthenticationPrincipal CustomUserDetails user) {
-    return ApiResponse.ok(service.chat(user.getUserId(), request.message(), true));
+    return ApiResponse.ok(service.chat(user.getUserId(), request.getMessage(), true));
   }
 }

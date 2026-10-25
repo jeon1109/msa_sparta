@@ -1,5 +1,20 @@
 package com.sparta.msa.lesson.domain.category.dto;
 
 import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-public record CategoryResponse(Long id, String name, List<CategoryResponse> childCategories) {}
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class CategoryResponse {
+
+  private Long id;
+
+  private String name;
+
+  private List<CategoryResponse> childCategories;
+}

@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 @RequiredArgsConstructor
 public enum DomainExceptionCode {
+  NOT_FOUND_CART_ITEM(HttpStatus.NOT_FOUND, "장바구니 상품을 찾을 수 없습니다."),
   PRODUCT_IN_USE(HttpStatus.CONFLICT, "주문에 포함된 상품은 삭제할 수 없습니다."),
   NOT_FOUND_PRODUCT(HttpStatus.NOT_FOUND, "상품을 찾을 수 없습니다."),
   NOT_FOUND_USER(HttpStatus.NOT_FOUND, "사용자를 찾을 수 없습니다."),

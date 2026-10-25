@@ -25,23 +25,23 @@ public class OrderService {
 
   @Transactional
   public OrderResponse order(OrderRequest request, CustomUserDetails principal) {
-    authorize(request.userId(), principal);
+    authorize(request.getUserId(), principal);
     var user =
         userRepository
-            .findById(request.userId())
+            .findById(request.getUserId())
             .orElseThrow(() -> new DomainException(DomainExceptionCode.NOT_FOUND_USER));
     var order = Order.builder().user(user).totalPrice(BigDecimal.ZERO).build();
     BigDecimal total = BigDecimal.ZERO;
-    for (var item : request.products()) {
+    for (var item : request.getProducts()) {
       var product =
           productRepository
-              .findById(item.id())
+              .findById(item.getId())
               .orElseThrow(() -> new DomainException(DomainExceptionCode.NOT_FOUND_PRODUCT));
-      if (product.getStock() < item.quantity())
+      if (product.getStock() < item.getQuantity())
         throw new DomainException(DomainExceptionCode.OUT_OF_STOCK);
-      product.decreaseStock(item.quantity());
-      order.addProduct(product, item.quantity());
-      total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.quantity())));
+      product.decreaseStock(item.getQuantity());
+      order.addProduct(product, item.getQuantity());
+      total = total.add(product.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
     }
     order.setTotalPrice(total);
     return mapper.toResponse(orderRepository.saveAndFlush(order));

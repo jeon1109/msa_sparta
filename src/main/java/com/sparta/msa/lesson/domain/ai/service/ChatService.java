@@ -95,7 +95,7 @@ public class ChatService {
     String cached = redis.opsForValue().get(key);
     if (cached != null) return new ChatResponse(cached);
     ChatResponse result = chat(userId, message, false);
-    redis.opsForValue().set(key, result.message(), Duration.ofHours(1));
+    redis.opsForValue().set(key, result.getMessage(), Duration.ofHours(1));
     return result;
   }
 

@@ -40,7 +40,13 @@ public class ApiResponse<T> {
   }
 
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  public record Error(String errorCode, String errorMessage) {
+  @Getter
+  @NoArgsConstructor
+  @AllArgsConstructor
+  public static class Error {
+
+    private String errorCode;
+    private String errorMessage;
 
     public static Error of(String errorCode, String errorMessage) {
       return new Error(errorCode, errorMessage);

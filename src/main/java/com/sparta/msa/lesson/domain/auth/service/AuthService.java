@@ -45,7 +45,7 @@ public class AuthService {
     try {
       authentication =
           authenticationManager.authenticate(
-              UsernamePasswordAuthenticationToken.unauthenticated(login.email(), login.password()));
+              UsernamePasswordAuthenticationToken.unauthenticated(login.getEmail(), login.getPassword()));
     } catch (AuthenticationException ex) {
       throw new DomainException(DomainExceptionCode.INVALID_CREDENTIALS);
     }

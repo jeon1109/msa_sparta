@@ -55,9 +55,9 @@ public class CategoryService {
   @Transactional
   public CategoryResponse create(CategoryRequest request) {
     Category parent =
-        request.parentCategoryId() == null ? null : getCategory(request.parentCategoryId());
+        request.getParentCategoryId() == null ? null : getCategory(request.getParentCategoryId());
     Category saved =
-        categoryRepository.save(Category.builder().name(request.name()).parent(parent).build());
+        categoryRepository.save(Category.builder().name(request.getName()).parent(parent).build());
     afterCommit(() -> redis.delete(CACHE_KEY));
     return new CategoryResponse(saved.getId(), saved.getName(), List.of());
   }
